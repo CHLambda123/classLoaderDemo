@@ -115,51 +115,53 @@ public class MyClassLoader extends ClassLoader {
      */
     @Override
     public Class<?> loadClass(String className, boolean resolve) throws ClassNotFoundException {
-        Class<?> clazz = findLoadedClass(className);
-        if (clazz != null) {
-            return clazz;
-        }
-        if (allUrl != null) {
-            String classPath = className.replaceAll("\\.", "/");
-            classPath = classPath.concat(".class");
-            for (URL url : allUrl) {
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                JarFile jarFile = null;
-                InputStream is = null;
-                try {
-                    File file = new File(url.toURI());
-                    if (file.exists()) {
-                        jarFile = new JarFile(file);
-                        JarEntry jarEntry = jarFile.getJarEntry(classPath);
-                        if (jarEntry != null) {
-                            is = jarFile.getInputStream(jarEntry);
-                            int c = 0;
-                            while (-1 != (c = is.read())) {
-                                baos.write(c);
-                            }
-                            byte[] data = baos.toByteArray();
-                            return defineClass(className, data, 0, data.length);
-                        }
-                    }
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                } finally {
+        synchronized (getClassLoadingLock(className)) {
+            Class<?> clazz = findLoadedClass(className);
+            if (clazz != null) {
+                return clazz;
+            }
+            if (allUrl != null) {
+                String classPath = className.replaceAll("\\.", "/");
+                classPath = classPath.concat(".class");
+                for (URL url : allUrl) {
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    JarFile jarFile = null;
+                    InputStream is = null;
                     try {
-                        if (jarFile != null) {
-                            jarFile.close();
+                        File file = new File(url.toURI());
+                        if (file.exists()) {
+                            jarFile = new JarFile(file);
+                            JarEntry jarEntry = jarFile.getJarEntry(classPath);
+                            if (jarEntry != null) {
+                                is = jarFile.getInputStream(jarEntry);
+                                int c = 0;
+                                while (-1 != (c = is.read())) {
+                                    baos.write(c);
+                                }
+                                byte[] data = baos.toByteArray();
+                                return defineClass(className, data, 0, data.length);
+                            }
                         }
-                        if (is != null) {
-                            is.close();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    } finally {
+                        try {
+                            if (jarFile != null) {
+                                jarFile.close();
+                            }
+                            if (is != null) {
+                                is.close();
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
-                    } catch (IOException e) {
-                        e.printStackTrace();
                     }
                 }
             }
+            if (resolve) {
+                super.resolveClass(clazz);
+            }
+            return super.loadClass(className, resolve);
         }
-        if (resolve) {
-            super.resolveClass(clazz);
-        }
-        return super.loadClass(className, resolve);
     }
 }

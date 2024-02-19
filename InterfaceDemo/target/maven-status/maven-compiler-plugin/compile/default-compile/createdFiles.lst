@@ -1,4 +1,4 @@
 com\lambda\classloaderdemo\MyClassLoaderFactory.class
 com\lambda\myinterface\InterfaceDemo.class
-com\lambda\entry\TestMain.class
+com\lambda\myinterface\MyInterfaceDemoWrapper.class
 com\lambda\classloaderdemo\MyClassLoader.class
